@@ -26,19 +26,20 @@ uint64_t feistel(uint64_t data,uint64_t*son_keys){
     printf("IP置换结果:\n");
     print_bits(&ip,sizeof(ip));
     uint64_t L = (uint64_t) ((ip >>32) & 0xFFFFFFFF);
-    uint64_t R0 =(uint64_t) (ip & 0xFFFFFFFF);
-    uint64_t R = permute(R0,E,48,32);
+    uint64_t R =(uint64_t) (ip & 0xFFFFFFFF);
     printf("开始轮运算...\n");
     for(int i = 0;i<16;i++){
         uint64_t temp_L = L;
-        L= permute(S_box_change(R ^ son_keys[i]),P,32,32);
+        L = R;
+        R= temp_L ^ permute(S_box_change(permute(R,E,48,32) ^ son_keys[i]),P,32,32);
         printf("L%d:",i);
         print_bits(&L,sizeof(L));
-        R = temp_L;
+        printf("R%d:",i);
+        print_bits(&R,sizeof(R));
     }
     uint64_t res = (L<<32 | R);
     printf("轮运算结果:\n");
-    print_bits(&L,sizeof(L));
+    print_bits(&res,sizeof(res));
     return res;
 }
 
@@ -57,7 +58,7 @@ uint32_t S_box_change(uint64_t R_K){
     
 
 //加密
-void encrypt(uint64_t data,uint64_t key){
+uint64_t encrypt(uint64_t data,uint64_t key){
     printf("明文(16进制): %016llx\n明文(2进制):",data);
     print_bits(&data,sizeof(data));
     printf("生成初始密钥: %llx\n",key);
@@ -67,7 +68,24 @@ void encrypt(uint64_t data,uint64_t key){
     uint64_t c_t=permute(c_t_p,IP_INV,64,64);
     printf("加密完毕\n密文(16进制): %llx\n密文(2进制):",c_t);
     print_bits(&c_t,sizeof(c_t));
+    return c_t;
 }
+
+//解密
+uint64_t decrypt(uint64_t data,uint64_t key){
+    printf("开始解密...\n");
+    printf("密文: %llx\n",data);
+    uint64_t*son_keys_encrypt =feistel_key(key);
+    uint64_t* sonkeys_decrypt = get_sonkeys_decrypt(son_keys_encrypt);
+    uint64_t m_t_p = feistel(data,sonkeys_decrypt);
+    printf("开始IP逆置换...\n");
+    uint64_t m_t=permute(m_t_p,IP_INV,64,64);
+    printf("解密完毕\n明文(16进制): %llx\n明文(2进制):",m_t);
+    print_bits(&m_t,sizeof(m_t));
+    return m_t;
+}
+
+
 
 int main(){
     SetConsoleOutputCP(65001);
@@ -85,7 +103,8 @@ int main(){
     else{
         key =  generate_initial_key();
     }
-    encrypt(data,key);
+    uint64_t c_t =encrypt(data,key);
+    uint64_t m_t = decrypt(c_t,key);
     printf("输入任意值退出...\n");
     getch();
     return 0;

@@ -62,3 +62,15 @@ uint64_t* feistel_key(uint64_t key){
     }
     return son_keys;
 }
+
+uint64_t* get_sonkeys_decrypt(uint64_t* sonkeys_encrypt){
+    uint64_t *son_keys_decrypt=(uint64_t*)malloc(16*sizeof(uint64_t));
+    if(son_keys_decrypt==NULL){
+        printf("申请子密钥内存空间失败！");
+        return NULL;
+    } 
+    for(int i=0;i<16;i++){
+        son_keys_decrypt[i] = sonkeys_encrypt[15-i];
+    }
+    return son_keys_decrypt;
+}
